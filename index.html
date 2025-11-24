@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory Game: One Piece Avançado</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #09aaf5; 
+            color: #4a148c; 
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* ------------------------------------- */
+        /* ESTILOS DA INTERFACE (Ecrãs) */
+        /* ------------------------------------- */
+        .screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Estilo para botões de dificuldade e reiniciar */
+        .btn {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-transform: uppercase;
+        }
+        #btn-easy { background-color: #4CAF50; }
+        #btn-medium { background-color: #FFC107; }
+        #btn-hard { background-color: #F44336; }
+        .btn:hover { opacity: 0.8; }
+        
+        /* ------------------------------------- */
+        /* ESTILOS DO JOGO (Placar e Cartas) */
+        /* ------------------------------------- */
+        #game-screen {
+            display: none; /* Escondido por padrão */
+        }
+
+        .status-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #ffe0b2;
+            border-radius: 5px;
+            font-size: 20px;
+            color: #d84315;
+            font-weight: bold;
+        }
+        
+        .grid {
+            display: grid;
+            grid-gap: 15px;
+            perspective: 1000px;
+            padding: 20px;
+            background-color: #fff3e0; 
+            border-radius: 10px;
+        }
+        .grid-easy { grid-template-columns: repeat(4, 120px); }
+        .grid-medium { grid-template-columns: repeat(4, 120px); }
+        .grid-hard { grid-template-columns: repeat(6, 100px); } /* 16 cartas em 4x4 ou 16 cartas em 6 colunas para telas menores */
+
+        /* Estilos de Cartas (mantidos do anterior) */
+        .card {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border-radius: 8px;
+            background-size: cover; 
+            background-position: center;
+        }
+        .card.flip { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+        }
+        .card-front {
+            background-image: url('./assets/card-back.png');
+            border: 4px solid #bf360c;
+        }
+        .card-back {
+            background-color: #fff9c4; 
+            transform: rotateY(180deg);
+            border: 4px solid #ffd54f; 
+        }
+        .card.match .card-front { background-color: #81c784; border-color: #388e3c; }
+        .card.match .card-back { background-color: #c8e6c9; border-color: #66bb6a; }
+
+        /* Estilos específicos para cada personagem (atualizados para caminhos de arquivo) */
+        .card-back.luffy { background-image: url('./img/luffy.jpg'); }
+        .card-back.zoro { background-image: url('./img/zoro.jpg'); }
+        .card-back.nami { background-image: url('./img/nami.jpg'); }
+        .card-back.usopp { background-image: url('./img/usopp.jpg'); }
+        .card-back.sanji { background-image: url('./img/sanji.jpg'); }
+        .card-back.chopper { background-image: url('./img/chopper.jpg'); }
+        .card-back.robin { background-image: url('./img/robin.jpg'); } /* Novo */
+        .card-back.franky { background-image: url('./img/franky.jpg'); } /* Novo */
+        .card-back.brook { background-image: url('../img/brook.jpg'); } /* Novo */
+        .card-back.jimbe { background-image: url('./img/jimbe.jpg'); } /* Novo */
+
+        /* ------------------------------------- */
+        /* ESTILOS DA TELA DE VITÓRIA */
+        /* ------------------------------------- */
+        #win-screen {
+            display: none; /* Escondido por padrão */
+            background-color: #e8f5e9;
+            border: 4px solid #4CAF50;
+            padding: 40px;
+        }
+        #win-screen h2 {
+            color: #4CAF50;
+            font-size: 36px;
+        }
+        #win-results p {
+            font-size: 22px;
+            margin: 10px 0;
+            color: #388E3C;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="difficulty-screen" class="screen">
+        <h1>Escolha a Dificuldade - Memory Piece</h1>
+        <p>Selecione o número de cartas para começar:</p>
+        <button id="btn-easy" class="btn" data-difficulty="easy">Fácil (4 Pares)</button>
+        <button id="btn-medium" class="btn" data-difficulty="medium">Médio (6 Pares)</button>
+        <button id="btn-hard" class="btn" data-difficulty="hard">Difícil (9 Pares)</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <h1>Jogo da Memória dos Chapéus de Palha</h1>
+        
+        <div class="status-bar">
+            <span>Tempo: <span id="timer">00:00</span></span>
+            <span>Tentativas: <span id="attempts-counter">0</span></span>
+        </div>
+
+        <div class="grid">
+            </div>
+    </div>
+
+    <div id="win-screen" class="screen">
+        <h2>🎉 Parabéns, Capitão! Você Venceu!</h2>
+        <p>Você encontrou todos os pares de Chapéus de Palha.</p>
+        <div id="win-results">
+            </div>
+        <button id="btn-restart" class="btn" style="background-color: #1976D2;">Jogar Novamente</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
